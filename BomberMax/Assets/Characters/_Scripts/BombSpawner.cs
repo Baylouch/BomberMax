@@ -8,7 +8,7 @@ public class BombSpawner : MonoBehaviour
 
     private int maxBombNumb = 1;
     private int currentBombNumb = 0; // To know the current bombs number spawned
-    private int explosionForce = 1;
+    [SerializeField]private int explosionForce = 1;
 
     [SerializeField] GameObject bombPrefab;
 
@@ -31,11 +31,11 @@ public class BombSpawner : MonoBehaviour
         // TODO Create a button to spawn the bomb
         if (Input.GetKeyDown(KeyCode.Space))
         {
-            SpawnBomb();
+            DropBomb();
         }
     }
 
-    public void SpawnBomb()
+    public void DropBomb()
     {
         if (currentBombNumb >= maxBombNumb)
             return;
@@ -45,10 +45,10 @@ public class BombSpawner : MonoBehaviour
         Vector2 spawnPos = new Vector2(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y));
 
         // We want a reference to the current TileInfo position to make check of blocks, bombs, and set bomb on it
-        int _currentTileIndex = StageManager.instance.TilesInfo.FindIndex(x => x.position == spawnPos);
+        int _currentTileIndex = StageManager.instance.Grid.FindIndex(x => x.position == spawnPos);
 
         // Logic to know if there is already a bomb on the spot
-        if (StageManager.instance.TilesInfo[_currentTileIndex].hasBomb == true)
+        if (StageManager.instance.Grid[_currentTileIndex].hasBomb == true)
         {
             // Just make it impossible to spawn bomb
             return;
@@ -60,6 +60,8 @@ public class BombSpawner : MonoBehaviour
 
         _bomb.SetupBomb(this);
         _bomb.SetBombSpawnerID(charInfo.CharID);
+
+        StageManager.instance.Grid[_currentTileIndex].hasBomb = true;
 
         currentBombNumb++;
     }
@@ -91,5 +93,10 @@ public class BombSpawner : MonoBehaviour
     public int GetExplosionForce()
     {
         return explosionForce;
+    }
+
+    public int GetCharID()
+    {
+        return charInfo.CharID;
     }
 }

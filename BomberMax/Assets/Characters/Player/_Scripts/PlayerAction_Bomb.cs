@@ -12,6 +12,6 @@ public class PlayerAction_Bomb : MonoBehaviour, IPointerDownHandler
 
     public void OnPointerDown(PointerEventData eventData)
     {
-        bombSpawner.SpawnBomb();
+        bombSpawner.DropBomb();
     }
 }

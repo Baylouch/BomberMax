@@ -36,8 +36,9 @@ public class DestructibleBlock : MonoBehaviour
     {
         SpawnBonus();
 
-        int tileIndex = StageManager.instance.TilesInfo.FindIndex(x => x.position.x == transform.position.x && x.position.y == transform.position.y);
-        StageManager.instance.TilesInfo[tileIndex].hasDestructibleBlock = false;
+        int tileIndex = StageManager.instance.Grid.FindIndex(x => x.position.x == transform.position.x && x.position.y == transform.position.y);
+        StageManager.instance.Grid[tileIndex].hasDestructibleBlock = false;
+        StageManager.instance.Grid[tileIndex].walkable = true;
 
         Destroy(gameObject);
     }

@@ -1,31 +1,35 @@
 using UnityEngine;
 
+[RequireComponent(typeof(Animator))]
+[RequireComponent(typeof(CharacterHealth))]
 [RequireComponent(typeof(CharacterInfo))]
 public class CharacterMovement : MonoBehaviour
 {
-    public bool canMove = true; // Used when player die
-
     [SerializeField] float speed = 3f;
     [SerializeField] Transform movePoint;
     [SerializeField] LayerMask stopMovement;
 
     Animator _anim;
+    CharacterHealth _health;
 
     bool bonusMove = false; // For now we just multiply by 2 the original speed
     float endBonusTime = 0f; // To know when player gets the bonus to stop it
 
-    int moveVertical, moveHorizontal; // -1 is for down/left +1 is for up/right 0's are for no movement
-    bool isMoving; // To know when to stop the animation, set to true when any movement is done, set to false when we want to stop move
-    bool movementHasBeenSwitch; // To fix the icy look of the animation when player update its movement to another direction
+    MovementDirection currentDirection = MovementDirection.None;
 
-    Vector3 previousPosition;
+    bool isMoving; // To know when to stop the animation, set to true when any movement is done, set to false when we want to stop move
+
+    bool oppositeDirection; // When we go to the opposite direction from where we went, we can fast transition on.
+    // But if we change direction perpendicularly we must wait until we reach the last position we going to.
+    // It must be on tile to tile movement
 
     // Start is called before the first frame update
     void Start()
     {
         _anim = GetComponent<Animator>();
+        _health = GetComponent<CharacterHealth>();
+
         movePoint.parent = null;
-        previousPosition = transform.position;
 
         if (gameObject.tag == "Player")
         {
@@ -43,90 +47,90 @@ public class CharacterMovement : MonoBehaviour
     {
         if (bonusMove)
         {
-            if (endBonusTime <= Time.time)
+            if (endBonusTime <= Time.time || _health.IsDead())
             {
                 bonusMove = false;
                 _anim.speed = 1;
             }
         }
-    }
 
-    private void FixedUpdate()
-    {
-        // If direction has changed, we don't want to wait until player get to the next waypoint,
-        // we want a fast transition to get a responsive movement from the character
-        // We want the character to go back where he was before movement has been changed IF he already moves from the next waypoint that we dont want anymore
-        // only if its distance from the previous position is less than the next waypoint position
-        if (movementHasBeenSwitch)
+        if (_health.IsDead())
         {
-            if ((transform.position - movePoint.position).magnitude >= 0.5f && movePoint.position != previousPosition)
-            {
-                movePoint.position = previousPosition;
-            }
+            if (isMoving)
+                StopMovement();
+
+            return;
         }
 
-
-        if ((transform.position - movePoint.position).magnitude <= 0.05f)
+        if ((transform.position - movePoint.position).magnitude <= 0.05f || oppositeDirection)
         {
-            // To avoid "icy" issue
-            if (movementHasBeenSwitch)
-            {
-                movementHasBeenSwitch = false;
+            if (oppositeDirection)
+                oppositeDirection = false;
 
-                if (moveVertical == 0)
-                {
-                    _anim.SetInteger("MovementVertical", 0);
-                    _anim.SetInteger("MovementHorizontal", moveHorizontal);
+            switch (currentDirection)
+            {
+                case MovementDirection.None:
+                    isMoving = false;
 
-                }
-                else
-                {
-                    _anim.SetInteger("MovementHorizontal", 0);
-                    _anim.SetInteger("MovementVertical", moveVertical);
-                }
-            }
+                    break;
+                case MovementDirection.Up:
+                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(0f, 1f, 0f), .2f, stopMovement))
+                    {
+                        movePoint.position += new Vector3(0f, 1f, 0f);
+                    }
 
-            if (moveVertical == 1)
-            {
-                if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(0f, 1f, 0f), .2f, stopMovement))
-                {
-                    movePoint.position += new Vector3(0f, 1f, 0f);
-                }
-            }
-            else if (moveVertical == -1)
-            {
-                if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(0f, -1f, 0f), .2f, stopMovement))
-                {
-                    movePoint.position += new Vector3(0f, -1f, 0f);
-                }
-            }
-            else if (moveHorizontal == 1)
-            {
-                if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(1f, 0f, 0f), .2f, stopMovement))
-                {
-                    movePoint.position += new Vector3(1f, 0f, 0f);
-                }
-            }
-            else if (moveHorizontal == -1)
-            {
-                if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(-1f, 0f, 0f), .2f, stopMovement))
-                {
-                    movePoint.position += new Vector3(-1f, 0f, 0f);
-                }
-            }
-        }
-        else
-        {
-            if (previousPosition != movePoint.position)
-            {
-                previousPosition = movePoint.position;
+                    if (_anim.GetInteger("MovementHorizontal") != 0)
+                        _anim.SetInteger("MovementHorizontal", 0);
+
+                    if (_anim.GetInteger("MovementVertical") != 1)
+                        _anim.SetInteger("MovementVertical", 1);
+
+                    break;
+                case MovementDirection.Down:
+                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(0f, -1f, 0f), .2f, stopMovement))
+                    {
+                        movePoint.position += new Vector3(0f, -1f, 0f);
+                    }
+
+                    if (_anim.GetInteger("MovementHorizontal") != 0)
+                        _anim.SetInteger("MovementHorizontal", 0);
+
+                    if (_anim.GetInteger("MovementVertical") != -1)
+                        _anim.SetInteger("MovementVertical", -1);
+
+                    break;
+                case MovementDirection.Left:
+                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(-1f, 0f, 0f), .2f, stopMovement))
+                    {
+                        movePoint.position += new Vector3(-1f, 0f, 0f);
+                    }
+
+                    if (_anim.GetInteger("MovementVertical") != 0)
+                        _anim.SetInteger("MovementVertical", 0);
+
+                    if (_anim.GetInteger("MovementHorizontal") != -1)
+                        _anim.SetInteger("MovementHorizontal", -1);
+
+                    break;
+                case MovementDirection.Right:
+                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(1f, 0f, 0f), .2f, stopMovement))
+                    {
+                        movePoint.position += new Vector3(1f, 0f, 0f);
+                    }
+
+                    if (_anim.GetInteger("MovementVertical") != 0)
+                        _anim.SetInteger("MovementVertical", 0);
+
+                    if (_anim.GetInteger("MovementHorizontal") != 1)
+                        _anim.SetInteger("MovementHorizontal", 1);
+
+                    break;
             }
         }
 
         if (transform.position != movePoint.position)
         {
             transform.position = Vector3.MoveTowards(transform.position, movePoint.position, ((bonusMove) ? speed + 2f : speed) * Time.deltaTime);
-
         }
         else
         {
@@ -144,56 +148,55 @@ public class CharacterMovement : MonoBehaviour
         }
     }
 
-    // Method to set the movement parameters : anim param is the same as int param used in this script
-    // this method always set isMoving to true because it is only call when movement is ask
-    void SetMovementParemeters(int _moveVertical, int _moveHorizontal)
+    public void StopMovement()
     {
-        isMoving = true;
-
-        moveVertical = _moveVertical;
-        moveHorizontal = _moveHorizontal;
-
-        movementHasBeenSwitch = true;
+        currentDirection = MovementDirection.None;
     }
 
-    public void StopMove()
+    public void PerformMovement(MovementDirection _direction)
     {
-        moveVertical = 0;
-        moveHorizontal = 0;
+        MovementDirection lastDirection = currentDirection;
 
-        isMoving = false;
-    }
+        switch (_direction)
+        {
+            case MovementDirection.Up:
+                currentDirection = MovementDirection.Up;
 
-    public void MoveUp()
-    {
-        if (!canMove)
-            return;
+                if (lastDirection == MovementDirection.Down)
+                {
+                    oppositeDirection = true;
+                }
+                break;
+            case MovementDirection.Down:
+                currentDirection = MovementDirection.Down;
 
-        SetMovementParemeters(1, 0);
-    }
+                if (lastDirection == MovementDirection.Up)
+                {
+                    oppositeDirection = true;
+                }
+                break;
+            case MovementDirection.Left:
+                currentDirection = MovementDirection.Left;
 
-    public void MoveDown()
-    {
-        if (!canMove)
-            return;
+                if (lastDirection == MovementDirection.Right)
+                {
+                    oppositeDirection = true;
 
-        SetMovementParemeters(-1, 0);
-    }
+                }
+                break;
+            case MovementDirection.Right:
+                currentDirection = MovementDirection.Right;
 
-    public void MoveLeft()
-    {
-        if (!canMove)
-            return;
+                if (lastDirection == MovementDirection.Left)
+                {
+                    oppositeDirection = true;
 
-        SetMovementParemeters(0, -1);
-    }
+                }
+                break;
+        }
 
-    public void MoveRight()
-    {
-        if (!canMove)
-            return;
-
-        SetMovementParemeters(0, 1);
+        if (!isMoving)
+            isMoving = true;
     }
 
     public void ActivateSpeedBonus(float _duration)

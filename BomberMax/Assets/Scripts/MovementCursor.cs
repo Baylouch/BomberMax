@@ -31,27 +31,29 @@ public class MovementCursor : MonoBehaviour, IPointerDownHandler, IPointerUpHand
 
             // Use mathf.clamp to restrict cursor pos on the rect limit
             cursorRect.position = Input.mousePosition;
+            
             float _clampOnX = Mathf.Clamp(cursorRect.localPosition.x, -(cursorRectLimits.rect.width / 2) + (cursorRect.rect.width / 2), (cursorRectLimits.rect.width / 2) - (cursorRect.rect.width / 2));
             float _clampOnY = Mathf.Clamp(cursorRect.localPosition.y, -(cursorRectLimits.rect.height / 2) + (cursorRect.rect.height / 2), (cursorRectLimits.rect.height / 2) - (cursorRect.rect.height / 2));
+            
             cursorRect.localPosition = new Vector3(_clampOnX, _clampOnY, 0f);
 
             // Set value to character movement relative to cursorRect.localPosition
             if (Mathf.Abs(cursorRect.localPosition.y) >= Mathf.Abs(cursorRect.localPosition.x))
             {
-                if (cursorRect.localPosition.y >= (cursorRectLimits.rect.height / 10))
+                if (cursorRect.localPosition.y >= (cursorRectLimits.rect.height / 8))
                 {
                     if (moveValue != 1)
                     {
                         moveValue = 1;
-                        movement.MoveUp();
+                        movement.PerformMovement(MovementDirection.Up);
                     }
                 }
-                else if (cursorRect.localPosition.y <= -(cursorRectLimits.rect.height / 10))
+                else if (cursorRect.localPosition.y <= -(cursorRectLimits.rect.height / 8))
                 {
                     if (moveValue != 2)
                     {
                         moveValue = 2;
-                        movement.MoveDown();
+                        movement.PerformMovement(MovementDirection.Down);
                     }
                 }
                 else
@@ -59,26 +61,26 @@ public class MovementCursor : MonoBehaviour, IPointerDownHandler, IPointerUpHand
                     if (moveValue != 0)
                     {
                         moveValue = 0;
-                        movement.StopMove();
+                        movement.StopMovement();
                     }
                 }
             }
             else
             {
-                if (cursorRect.localPosition.x >= (cursorRectLimits.rect.width / 10))
+                if (cursorRect.localPosition.x >= (cursorRectLimits.rect.width / 8))
                 {
                     if (moveValue != 3)
                     {
                         moveValue = 3;
-                        movement.MoveRight();
+                        movement.PerformMovement(MovementDirection.Right);
                     }
                 }
-                else if (cursorRect.localPosition.x <= -(cursorRectLimits.rect.width / 10))
+                else if (cursorRect.localPosition.x <= -(cursorRectLimits.rect.width / 8))
                 {
                     if (moveValue != 4)
                     {
                         moveValue = 4;
-                        movement.MoveLeft();
+                        movement.PerformMovement(MovementDirection.Left);
                     }
                 }
                 else
@@ -86,7 +88,7 @@ public class MovementCursor : MonoBehaviour, IPointerDownHandler, IPointerUpHand
                     if (moveValue != 0)
                     {
                         moveValue = 0;
-                        movement.StopMove();
+                        movement.StopMovement();
                     }
                 }
             }
@@ -104,7 +106,7 @@ public class MovementCursor : MonoBehaviour, IPointerDownHandler, IPointerUpHand
         // Cursor comes back to the start position
         cursorFollowing = false;
         transform.position = startPosition;
-        movement.StopMove();
+        movement.StopMovement();
         moveValue = 0;
     }
 

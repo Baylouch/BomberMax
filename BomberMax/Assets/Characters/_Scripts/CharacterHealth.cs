@@ -167,8 +167,7 @@ public class CharacterHealth : MonoBehaviour
 
         CharacterMovement _movement = GetComponent<CharacterMovement>();
 
-        _movement.canMove = false;
-        _movement.StopMove();
+        _movement.StopMovement();
         _movement.enabled = false;
 
         // Special condition for local player only

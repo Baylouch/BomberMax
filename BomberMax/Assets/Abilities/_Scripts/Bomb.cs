@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Collider2D))]
@@ -9,6 +10,8 @@ public class Bomb : MonoBehaviour
     public const float LeftRotation = 180f;
     public const float RightRotation = 0f;
 
+    public const float ExplosionDuration = 1f; // To know how many times the explosion stay
+
     public static int bombID = 0;
 
     [SerializeField] float explosionTiming;
@@ -16,15 +19,12 @@ public class Bomb : MonoBehaviour
     [SerializeField] BombExplosionSettings explosionSettings;
 
     BombSpawner bombSpawner;
-
     Collider2D bombCollider;
 
-    int tileIndex; // To know the tile index in the StageManager list trough all of this script
     // Each direction explosion's length (set in SetExplosionLength() and use in SpawnExplosion())
     int explosionLengthLeft = 0, explosionLengthRight = 0, explosionLengthDown = 0, explosionLengthUp = 0;
 
     bool explosed = false;
-
 
     // Variables used for the bot : bombSpawnerID is to know the length of explosion (with conditions)
     int bombSpawnerID;
@@ -46,18 +46,10 @@ public class Bomb : MonoBehaviour
 
         bombCollider = GetComponent<Collider2D>();
 
-        tileIndex = StageManager.instance.TilesInfo.FindIndex(x => x.position == (Vector2)transform.position);
-        if (tileIndex != -1)
-        {
-            StageManager.instance.TilesInfo[tileIndex].hasBomb = true;
-        }
-        else
-        {
-            Debug.LogError("Bomb tileIndex wrong !!!!");
-        }
-
         StartCoroutine(Explosion());
         StartCoroutine(ColorModifier());
+
+        StageManager.instance.SetDangerTiles();
     }
 
     // When a bomb is created, its collider is Trigger because the player needs to runaway.
@@ -133,9 +125,8 @@ public class Bomb : MonoBehaviour
     void SetExplosionLength()
     {
         // To know if we meet a block to not continue on the axis
-        bool stopLeftAxis = false, stopRightAxis = false, stopDownAxis = false, stopUpAxis = false;
+        bool[] stopAxis = new bool[4] { false, false, false, false };
 
-        // We have to reset length because we set it multiple times
         explosionLengthUp = 0; explosionLengthRight = 0; explosionLengthLeft = 0; explosionLengthDown = 0;
 
         int tileToCheckIndex = -1;
@@ -147,118 +138,85 @@ public class Bomb : MonoBehaviour
         // Now we set the explosion's length for each axis
         while (currentTileRange <= explosionForce)
         {
-            // Left axis
-            if (!stopLeftAxis)
+            for (int i = 0; i < 4; i++)
             {
-                // We get the tile index in StageManager tiles list
-                tileToCheckIndex = StageManager.instance.TilesInfo.FindIndex(x => (x.position.x == transform.position.x - currentTileRange) && (x.position.y == transform.position.y));
-                // If we found an occurence
-                if (tileToCheckIndex != -1)
+                if (!stopAxis[i])
                 {
-                    // We check if the tile contain an undestructible block, so we dont want explosion on it and stop check on this axis
-                    if (StageManager.instance.TilesInfo[tileToCheckIndex].hasUndestructibleBlock)
+                    switch (i)
                     {
-                        stopLeftAxis = true;
+                        case 0: // Up
+                            tileToCheckIndex = StageManager.instance.Grid.FindIndex(x => (x.position.x == transform.position.x) && (x.position.y == transform.position.y + currentTileRange));
 
-                    }
-                    // We check if there is a destructible block, we want an explosion on it then stop check on this axis
-                    else if (StageManager.instance.TilesInfo[tileToCheckIndex].hasDestructibleBlock)
-                    {
-                        explosionLengthLeft++;
-                        stopLeftAxis = true;
-                    }
-                    // Else axis is clear of block, we can continue until force is reached
-                    else
-                    {
-                        explosionLengthLeft++;
+                            break;
+                        case 1: // Down
+                            tileToCheckIndex = StageManager.instance.Grid.FindIndex(x => (x.position.x == transform.position.x) && (x.position.y == transform.position.y - currentTileRange));
 
-                    }
-                }
-                else // We reached end of stage
-                {
-                    stopLeftAxis = true;
-                }
-            }
+                            break;
+                        case 2: // Left
+                            tileToCheckIndex = StageManager.instance.Grid.FindIndex(x => (x.position.x == transform.position.x - currentTileRange) && (x.position.y == transform.position.y));
 
-            // Right axis
-            if (!stopRightAxis)
-            {
-                tileToCheckIndex = StageManager.instance.TilesInfo.FindIndex(x => (x.position.x == transform.position.x + currentTileRange) && (x.position.y == transform.position.y));
-                if (tileToCheckIndex != -1)
-                {
-                    if (StageManager.instance.TilesInfo[tileToCheckIndex].hasUndestructibleBlock)
-                    {
-                        stopRightAxis = true;
+                            break;
+                        case 3: // Right
+                            tileToCheckIndex = StageManager.instance.Grid.FindIndex(x => (x.position.x == transform.position.x + currentTileRange) && (x.position.y == transform.position.y));
 
+                            break;
                     }
-                    else if (StageManager.instance.TilesInfo[tileToCheckIndex].hasDestructibleBlock)
-                    {
-                        explosionLengthRight++;
-                        stopRightAxis = true;
-                    }
-                    else
-                    {
-                        explosionLengthRight++;
 
+                    if (tileToCheckIndex == -1 || StageManager.instance.Grid[tileToCheckIndex].hasUndestructibleBlock)
+                    {
+                        stopAxis[i] = true;
                     }
-                }
-                else
-                {
-                    stopRightAxis = true;
-                }
-            }
+                    else 
+                    {
+                        switch (i)
+                        {
+                            case 0:
+                                if (StageManager.instance.Grid[tileToCheckIndex].hasDestructibleBlock)
+                                {
+                                    explosionLengthUp++;
+                                    stopAxis[i] = true;
+                                }
+                                else
+                                {
+                                    explosionLengthUp++;
+                                }
 
-            // Down axis
-            if (!stopDownAxis)
-            {
-                tileToCheckIndex = StageManager.instance.TilesInfo.FindIndex(x => (x.position.x == transform.position.x) && (x.position.y == transform.position.y - currentTileRange));
-                if (tileToCheckIndex != -1)
-                {
-                    if (StageManager.instance.TilesInfo[tileToCheckIndex].hasUndestructibleBlock)
-                    {
-                        stopDownAxis = true;
-
+                                break;
+                            case 1:
+                                if (StageManager.instance.Grid[tileToCheckIndex].hasDestructibleBlock)
+                                {
+                                    explosionLengthDown++;
+                                    stopAxis[i] = true;
+                                }
+                                else
+                                {
+                                    explosionLengthDown++;
+                                }
+                                break;
+                            case 2:
+                                if (StageManager.instance.Grid[tileToCheckIndex].hasDestructibleBlock)
+                                {
+                                    explosionLengthLeft++;
+                                    stopAxis[i] = true;
+                                }
+                                else
+                                {
+                                    explosionLengthLeft++;
+                                }
+                                break;
+                            case 3:
+                                if (StageManager.instance.Grid[tileToCheckIndex].hasDestructibleBlock)
+                                {
+                                    explosionLengthRight++;
+                                    stopAxis[i] = true;
+                                }
+                                else
+                                {
+                                    explosionLengthRight++;
+                                }
+                                break;
+                        }
                     }
-                    else if (StageManager.instance.TilesInfo[tileToCheckIndex].hasDestructibleBlock)
-                    {
-                        explosionLengthDown++;
-                        stopDownAxis = true;
-                    }
-                    else
-                    {
-                        explosionLengthDown++;
-
-                    }
-                }
-                else
-                {
-                    stopDownAxis = true;
-                }
-            }
-
-            // Up axis
-            if (!stopUpAxis)
-            {
-                tileToCheckIndex = StageManager.instance.TilesInfo.FindIndex(x => (x.position.x == transform.position.x) && (x.position.y == transform.position.y + currentTileRange));
-                if (tileToCheckIndex != -1)
-                {
-                    if (StageManager.instance.TilesInfo[tileToCheckIndex].hasUndestructibleBlock)
-                    {
-                        stopUpAxis = true;
-                    }
-                    else if (StageManager.instance.TilesInfo[tileToCheckIndex].hasDestructibleBlock)
-                    {
-                        explosionLengthUp++;
-                        stopUpAxis = true;
-                    }
-                    else
-                    {
-                        explosionLengthUp++;
-                    }
-                }
-                else
-                {
-                    stopUpAxis = true;
                 }
             }
 
@@ -270,12 +228,13 @@ public class Bomb : MonoBehaviour
     // When _length == 0, it's create the center part of the explosion, the only time _centerSprite is required in param
     // bool xSpread to determine if we want to spread the explosion on X or Y (true = X, false = Y) (x for horizontal, y for vertical)
     // bool positiveSpread to determine if we want a left / right or up / down (true = right/up, false = left/down)
-    void CreateExplosionParts(int _length, float _zRot, bool xSpread, bool positiveSpread, Sprite _centerSprite = null)
+    void CreateExplosionParts(Transform explosionParent, int _length, float _zRot, bool xSpread, bool positiveSpread, Sprite _centerSprite = null)
     {
         // To create the center part (with length of 0)
         if (_centerSprite != null)
         {
-            GameObject explosionPart = Instantiate(explosionSettings.explosionPartPrefab, transform);
+            GameObject explosionPart = Instantiate(explosionSettings.explosionPartPrefab, explosionParent);
+
             explosionPart.transform.position = transform.position;
             explosionPart.transform.localEulerAngles = new Vector3(0, 0, _zRot);
             explosionPart.GetComponent<SpriteRenderer>().sprite = _centerSprite;
@@ -286,7 +245,7 @@ public class Bomb : MonoBehaviour
         // To create middle and end part
         for (int i = 1; i <= _length; i++)
         {
-            GameObject explosionPart = Instantiate(explosionSettings.explosionPartPrefab, transform);
+            GameObject explosionPart = Instantiate(explosionSettings.explosionPartPrefab, explosionParent);
 
             if (positiveSpread)
             {
@@ -313,71 +272,96 @@ public class Bomb : MonoBehaviour
         }
     }
 
-    // Methods to spawn explosion's parts
+    // Methods to spawn explosion's parts (and destroy it)
     void SpawnExplosion()
     {
+        // We create the explosion parent here to pass it trough CreateExplosionParts() method
+        GameObject explosion = new GameObject("Explosion");
+        explosion.transform.position = transform.position;
+
+        // We must add a rigidbody on to detect collision with other things in game
+        Rigidbody2D _rb = explosion.AddComponent<Rigidbody2D>();
+        _rb.isKinematic = true;
+        _rb.freezeRotation = true;
+
+        // We also add a DangerTilesReseter on it to reset danger tile when the explosion is done
+        explosion.AddComponent<DangerTilesReseter>();
+
         // If length > 0 for 1 axis
         // Condition for down axis
         if (explosionLengthDown > 0 
             && explosionLengthLeft <= 0 && explosionLengthRight <= 0 && explosionLengthUp <= 0)
         {
-            CreateExplosionParts(0, UpRotation, false, false, explosionSettings.endGfx);
+            CreateExplosionParts(explosion.transform, 0, UpRotation, false, false, explosionSettings.endGfx);
 
-            CreateExplosionParts(explosionLengthDown, DownRotation, false, false);
+            CreateExplosionParts(explosion.transform, explosionLengthDown, DownRotation, false, false);
         }
         // Condition for up axis
         else if (explosionLengthUp > 0 
                  && explosionLengthLeft <= 0 && explosionLengthRight <= 0 && explosionLengthDown <= 0)
         {
-            CreateExplosionParts(0, DownRotation, false, false, explosionSettings.endGfx);
+            CreateExplosionParts(explosion.transform, 0, DownRotation, false, false, explosionSettings.endGfx);
 
-            CreateExplosionParts(explosionLengthUp, UpRotation, false, true);
+            CreateExplosionParts(explosion.transform, explosionLengthUp, UpRotation, false, true);
         }
         // Condition for left axis
         else if (explosionLengthLeft > 0 
                  && explosionLengthUp <= 0 && explosionLengthRight <= 0 && explosionLengthDown <= 0)
         {
-            CreateExplosionParts(0, RightRotation, false, false, explosionSettings.endGfx);
+            CreateExplosionParts(explosion.transform, 0, RightRotation, false, false, explosionSettings.endGfx);
 
-            CreateExplosionParts(explosionLengthLeft, LeftRotation, true, false);
+            CreateExplosionParts(explosion.transform, explosionLengthLeft, LeftRotation, true, false);
         }
         // Condition for right axis
         else if (explosionLengthRight > 0 
                  && explosionLengthLeft <= 0 && explosionLengthUp <= 0 && explosionLengthDown <= 0)
         {
-            CreateExplosionParts(0, LeftRotation, false, false, explosionSettings.endGfx);
+            CreateExplosionParts(explosion.transform, 0, LeftRotation, false, false, explosionSettings.endGfx);
 
-            CreateExplosionParts(explosionLengthRight, RightRotation, true, true);
+            CreateExplosionParts(explosion.transform, explosionLengthRight, RightRotation, true, true);
         }
         // Condition for Y axis (up and down)
         else if (explosionLengthDown > 0 && explosionLengthUp > 0 
                  && explosionLengthLeft <= 0 && explosionLengthRight <= 0)
         {
-            CreateExplosionParts(0, UpRotation, false, false, explosionSettings.middleGfx);
+            CreateExplosionParts(explosion.transform, 0, UpRotation, false, false, explosionSettings.middleGfx);
 
-            CreateExplosionParts(explosionLengthUp, UpRotation, false, true);
-            CreateExplosionParts(explosionLengthDown, DownRotation, false, false);
+            CreateExplosionParts(explosion.transform, explosionLengthUp, UpRotation, false, true);
+            CreateExplosionParts(explosion.transform, explosionLengthDown, DownRotation, false, false);
         }
         // Condition for X axis (left and right)
         else if (explosionLengthLeft > 0 && explosionLengthRight > 0 
                  && explosionLengthDown <= 0 && explosionLengthUp <= 0)
         {
-            CreateExplosionParts(0, RightRotation, false, false, explosionSettings.middleGfx);
+            CreateExplosionParts(explosion.transform, 0, RightRotation, false, false, explosionSettings.middleGfx);
 
-            CreateExplosionParts(explosionLengthLeft, LeftRotation, true, false);
-            CreateExplosionParts(explosionLengthRight, RightRotation, true, true);
+            CreateExplosionParts(explosion.transform, explosionLengthLeft, LeftRotation, true, false);
+            CreateExplosionParts(explosion.transform, explosionLengthRight, RightRotation, true, true);
         }
         // If lengths > 0 for each axis
         // Spawn explosions in every axis relative to each axis length
         else
         {
-            CreateExplosionParts(0, 0f, false, false, explosionSettings.centerGfx);
+            CreateExplosionParts(explosion.transform, 0, 0f, false, false, explosionSettings.centerGfx);
 
-            CreateExplosionParts(explosionLengthDown, DownRotation, false, false);
-            CreateExplosionParts(explosionLengthUp, UpRotation, false, true);
-            CreateExplosionParts(explosionLengthLeft, LeftRotation, true, false);
-            CreateExplosionParts(explosionLengthRight, RightRotation, true, true);
+            CreateExplosionParts(explosion.transform, explosionLengthDown, DownRotation, false, false);
+            CreateExplosionParts(explosion.transform, explosionLengthUp, UpRotation, false, true);
+            CreateExplosionParts(explosion.transform, explosionLengthLeft, LeftRotation, true, false);
+            CreateExplosionParts(explosion.transform, explosionLengthRight, RightRotation, true, true);
 
+        }
+
+        Destroy(explosion, ExplosionDuration);
+    }
+
+    // Method to update bot dictionary
+    void UpdateBotsDictionary()
+    {
+        Bot_Behaviour[] bots = FindObjectsOfType<Bot_Behaviour>();
+
+        for (int i = 0; i < bots.Length; i++)
+        {
+            bots[i].UpdateBombsExplosionDictionary(bombSpawner);
         }
     }
 
@@ -390,7 +374,7 @@ public class Bomb : MonoBehaviour
 
         // We disable the bomb render and collider before destruction to not spawn explosion on it
         StopAllCoroutines();
-        Destroy(bombGfx.gameObject);
+        bombGfx.enabled = false;
         bombCollider.enabled = false;
 
         SetExplosionLength();
@@ -400,10 +384,16 @@ public class Bomb : MonoBehaviour
         // Decrement current spawner bomb
         bombSpawner.DecrementBombsNumb();
 
-        // Remove the bomb from the TileInfo list
-        StageManager.instance.TilesInfo[tileIndex].hasBomb = false;
+        int tileIndex = StageManager.instance.Grid.FindIndex(x => x.position == (Vector2)transform.position);
+        if (tileIndex != -1)
+        {
+            // Remove the bomb from the TileInfo list
+            StageManager.instance.Grid[tileIndex].hasBomb = false;
+        }
 
-        Destroy(gameObject, 1f);
+        UpdateBotsDictionary();
+
+        Destroy(gameObject);
     }
 
     public void SetupBomb(BombSpawner _spawner)
