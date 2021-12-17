@@ -46,8 +46,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 951b53a3d3641c54fab479539cf97aea, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  bonusType: 0
-  bonusDatas:
+  datas:
   - {fileID: 11400000, guid: fdec03feaadcf1b49b530a7821bd2952, type: 2}
   - {fileID: 11400000, guid: 64c357714c725284c82dca08e70afc25, type: 2}
   - {fileID: 11400000, guid: 0ba277ae8f5500f4fae3afb9e0f07493, type: 2}

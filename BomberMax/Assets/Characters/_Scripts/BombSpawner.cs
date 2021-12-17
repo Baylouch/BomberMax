@@ -1,6 +1,5 @@
 using UnityEngine;
 
-[RequireComponent(typeof(CharacterInfo))]
 public class BombSpawner : MonoBehaviour
 {
     public const int MaxBombNumber = 5;
@@ -12,13 +11,10 @@ public class BombSpawner : MonoBehaviour
 
     [SerializeField] GameObject bombPrefab;
 
-    CharacterInfo charInfo;
-
     private void Start()
     {
-        charInfo = GetComponent<CharacterInfo>();
-
-        if (charInfo.IsLocal)
+        // Handle multiplayer later
+        if (gameObject.tag == "Player")
         {
             FindObjectOfType<PlayerAction_Bomb>().SetupBombSpawner(this);
             GameCanvas.instance.SetBombBonusText(maxBombNumb);
@@ -29,9 +25,12 @@ public class BombSpawner : MonoBehaviour
     private void Update()
     {
         // TODO Create a button to spawn the bomb
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (gameObject.tag == "Player")
         {
-            DropBomb();
+            if (Input.GetKeyDown(KeyCode.Space))
+            {
+                DropBomb();
+            }
         }
     }
 
@@ -45,10 +44,10 @@ public class BombSpawner : MonoBehaviour
         Vector2 spawnPos = new Vector2(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y));
 
         // We want a reference to the current TileInfo position to make check of blocks, bombs, and set bomb on it
-        int _currentTileIndex = StageManager.instance.Grid.FindIndex(x => x.position == spawnPos);
+        int _currentTileIndex = StageManager.instance.GameGrid.FindIndex(x => x.position == spawnPos);
 
         // Logic to know if there is already a bomb on the spot
-        if (StageManager.instance.Grid[_currentTileIndex].hasBomb == true)
+        if (StageManager.instance.GameGrid[_currentTileIndex].hasBomb == true)
         {
             // Just make it impossible to spawn bomb
             return;
@@ -59,9 +58,8 @@ public class BombSpawner : MonoBehaviour
         Bomb _bomb = _curBomb.GetComponent<Bomb>();
 
         _bomb.SetupBomb(this);
-        _bomb.SetBombSpawnerID(charInfo.CharID);
 
-        StageManager.instance.Grid[_currentTileIndex].hasBomb = true;
+        StageManager.instance.GameGrid[_currentTileIndex].hasBomb = true;
 
         currentBombNumb++;
     }
@@ -77,7 +75,8 @@ public class BombSpawner : MonoBehaviour
         if (maxBombNumb < MaxBombNumber)
         {
             maxBombNumb++;
-            GameCanvas.instance.SetBombBonusText(maxBombNumb);
+            if (gameObject.tag == "Player")
+                GameCanvas.instance.SetBombBonusText(maxBombNumb);
         }
     }
 
@@ -86,17 +85,13 @@ public class BombSpawner : MonoBehaviour
         if (explosionForce < MaxExplosionForce)
         {
             explosionForce++;
-            GameCanvas.instance.SetExplosionBonusText(explosionForce);
+            if (gameObject.tag == "Player")
+                GameCanvas.instance.SetExplosionBonusText(explosionForce);
         }
     }
 
     public int GetExplosionForce()
     {
         return explosionForce;
-    }
-
-    public int GetCharID()
-    {
-        return charInfo.CharID;
     }
 }

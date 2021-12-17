@@ -4,7 +4,6 @@ using System.Collections;
 [RequireComponent(typeof(Collider2D))]
 [RequireComponent(typeof(Animator))]
 [RequireComponent(typeof(CharacterMovement))]
-[RequireComponent(typeof(CharacterInfo))]
 public class CharacterHealth : MonoBehaviour
 {
     public const int maxHealthPoints = 2;
@@ -181,8 +180,25 @@ public class CharacterHealth : MonoBehaviour
 
         float currentYPos = transform.position.y;
 
+        // If we found an ArcadeManager notify this character is dead
+        ArcadeManager arcadeManager = FindObjectOfType<ArcadeManager>();
+
+        if (arcadeManager != null)
+        {
+            if (gameObject.tag == "Player")
+            {
+                // Notify for player death
+                arcadeManager.PlayerDeathNotification();
+            }
+            else
+            {
+                // Notify for bot death
+                arcadeManager.BotDeathNotification();
+            }
+        }
         
 
+        // TODO Move into another method
         while (transform.position.y < currentYPos + 1f)
         {
             transform.Translate(new Vector2(0f, 0.1f));
@@ -206,17 +222,17 @@ public class CharacterHealth : MonoBehaviour
     {
         healthPoints--;
 
-        // TODO Change the way its use because this script is used on NOT local player and IA too.
+        // TODO : Handle multiplayer when needed
         if (healthPoints == 1)
         {
-            if (GetComponent<CharacterInfo>().IsLocal)
+            if (gameObject.tag == "Player")
                 GameCanvas.instance.healthUI.LostFirstHealth();
 
             StartCoroutine(GetHit());
         }
         else if (healthPoints <= 0)
         {
-            if (GetComponent<CharacterInfo>().IsLocal)
+            if (gameObject.tag == "Player")
                 GameCanvas.instance.healthUI.LostSecondHealth();
 
             StartCoroutine(Death());
@@ -229,7 +245,7 @@ public class CharacterHealth : MonoBehaviour
         {
             healthPoints++;
 
-            if (GetComponent<CharacterInfo>().IsLocal)
+            if (gameObject.tag == "Player")
                 GameCanvas.instance.healthUI.GainHealth();
         }
     }

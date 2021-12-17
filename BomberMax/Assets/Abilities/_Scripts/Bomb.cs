@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Collider2D))]
@@ -11,8 +10,6 @@ public class Bomb : MonoBehaviour
     public const float RightRotation = 0f;
 
     public const float ExplosionDuration = 1f; // To know how many times the explosion stay
-
-    public static int bombID = 0;
 
     [SerializeField] float explosionTiming;
     [SerializeField] SpriteRenderer bombGfx;
@@ -26,24 +23,8 @@ public class Bomb : MonoBehaviour
 
     bool explosed = false;
 
-    // Variables used for the bot : bombSpawnerID is to know the length of explosion (with conditions)
-    int bombSpawnerID;
-    public void SetBombSpawnerID(int _id) { bombSpawnerID = _id; }
-    public int GetBombSpawnerID() { return bombSpawnerID; }
-
-    // thisBombID is for not have multiple times the bomb in bot bomb's list
-    int thisBombID;
-    public int GetThisBombID() { return thisBombID; }
-
     private void Start()
     {
-        thisBombID = bombID;
-
-        if (bombID < int.MaxValue)
-            bombID++;
-        else
-            bombID = 0;
-
         bombCollider = GetComponent<Collider2D>();
 
         StartCoroutine(Explosion());
@@ -56,7 +37,7 @@ public class Bomb : MonoBehaviour
     // When he left, we set the trigger as false.
     private void OnTriggerExit2D(Collider2D collision)
     {
-        if (collision.gameObject.tag == "Player")
+        if (collision.gameObject.tag == "Player" || collision.gameObject.tag == "Bot")
         {
             bombCollider.isTrigger = false;
         }
@@ -145,24 +126,24 @@ public class Bomb : MonoBehaviour
                     switch (i)
                     {
                         case 0: // Up
-                            tileToCheckIndex = StageManager.instance.Grid.FindIndex(x => (x.position.x == transform.position.x) && (x.position.y == transform.position.y + currentTileRange));
+                            tileToCheckIndex = StageManager.instance.GameGrid.FindIndex(x => (x.position.x == transform.position.x) && (x.position.y == transform.position.y + currentTileRange));
 
                             break;
                         case 1: // Down
-                            tileToCheckIndex = StageManager.instance.Grid.FindIndex(x => (x.position.x == transform.position.x) && (x.position.y == transform.position.y - currentTileRange));
+                            tileToCheckIndex = StageManager.instance.GameGrid.FindIndex(x => (x.position.x == transform.position.x) && (x.position.y == transform.position.y - currentTileRange));
 
                             break;
                         case 2: // Left
-                            tileToCheckIndex = StageManager.instance.Grid.FindIndex(x => (x.position.x == transform.position.x - currentTileRange) && (x.position.y == transform.position.y));
+                            tileToCheckIndex = StageManager.instance.GameGrid.FindIndex(x => (x.position.x == transform.position.x - currentTileRange) && (x.position.y == transform.position.y));
 
                             break;
                         case 3: // Right
-                            tileToCheckIndex = StageManager.instance.Grid.FindIndex(x => (x.position.x == transform.position.x + currentTileRange) && (x.position.y == transform.position.y));
+                            tileToCheckIndex = StageManager.instance.GameGrid.FindIndex(x => (x.position.x == transform.position.x + currentTileRange) && (x.position.y == transform.position.y));
 
                             break;
                     }
 
-                    if (tileToCheckIndex == -1 || StageManager.instance.Grid[tileToCheckIndex].hasUndestructibleBlock)
+                    if (tileToCheckIndex == -1 || StageManager.instance.GameGrid[tileToCheckIndex].hasUndestructibleBlock)
                     {
                         stopAxis[i] = true;
                     }
@@ -171,50 +152,22 @@ public class Bomb : MonoBehaviour
                         switch (i)
                         {
                             case 0:
-                                if (StageManager.instance.Grid[tileToCheckIndex].hasDestructibleBlock)
-                                {
-                                    explosionLengthUp++;
-                                    stopAxis[i] = true;
-                                }
-                                else
-                                {
-                                    explosionLengthUp++;
-                                }
-
+                                explosionLengthUp++;
                                 break;
                             case 1:
-                                if (StageManager.instance.Grid[tileToCheckIndex].hasDestructibleBlock)
-                                {
-                                    explosionLengthDown++;
-                                    stopAxis[i] = true;
-                                }
-                                else
-                                {
-                                    explosionLengthDown++;
-                                }
+                                explosionLengthDown++;
                                 break;
                             case 2:
-                                if (StageManager.instance.Grid[tileToCheckIndex].hasDestructibleBlock)
-                                {
-                                    explosionLengthLeft++;
-                                    stopAxis[i] = true;
-                                }
-                                else
-                                {
-                                    explosionLengthLeft++;
-                                }
+                                explosionLengthLeft++;
                                 break;
                             case 3:
-                                if (StageManager.instance.Grid[tileToCheckIndex].hasDestructibleBlock)
-                                {
-                                    explosionLengthRight++;
-                                    stopAxis[i] = true;
-                                }
-                                else
-                                {
-                                    explosionLengthRight++;
-                                }
+                                explosionLengthRight++;
                                 break;
+                        }
+
+                        if (StageManager.instance.GameGrid[tileToCheckIndex].hasDestructibleBlock)
+                        {
+                            stopAxis[i] = true;
                         }
                     }
                 }
@@ -354,17 +307,6 @@ public class Bomb : MonoBehaviour
         Destroy(explosion, ExplosionDuration);
     }
 
-    // Method to update bot dictionary
-    void UpdateBotsDictionary()
-    {
-        Bot_Behaviour[] bots = FindObjectsOfType<Bot_Behaviour>();
-
-        for (int i = 0; i < bots.Length; i++)
-        {
-            bots[i].UpdateBombsExplosionDictionary(bombSpawner);
-        }
-    }
-
     public void Explode()
     {
         if (explosed)
@@ -384,14 +326,12 @@ public class Bomb : MonoBehaviour
         // Decrement current spawner bomb
         bombSpawner.DecrementBombsNumb();
 
-        int tileIndex = StageManager.instance.Grid.FindIndex(x => x.position == (Vector2)transform.position);
+        int tileIndex = StageManager.instance.GameGrid.FindIndex(x => x.position == (Vector2)transform.position);
         if (tileIndex != -1)
         {
             // Remove the bomb from the TileInfo list
-            StageManager.instance.Grid[tileIndex].hasBomb = false;
+            StageManager.instance.GameGrid[tileIndex].hasBomb = false;
         }
-
-        UpdateBotsDictionary();
 
         Destroy(gameObject);
     }

@@ -12,15 +12,18 @@ EditorBuildSettings:
     path: Assets/_Scenes/Menu_Main.unity
     guid: 2cda990e2423bbf4892e6590ba056729
   - enabled: 1
+    path: Assets/_Scenes/Menu_Solo.unity
+    guid: 2a483472769ef11449decd500054eac0
+  - enabled: 1
+    path: Assets/_Scenes/Menu_Multiplayer.unity
+    guid: 4bc54bb77ca902a4abdc5ec836e4d354
+  - enabled: 1
     path: Assets/_Scenes/Menu_Options.unity
     guid: fa4286b714531ec4c8986e616b375ae2
-  - enabled: 1
-    path: Assets/_Scenes/Menu_CharacterSelection.unity
-    guid: 298e9b123be9e9b42abbad756f732b63
   - enabled: 1
     path: Assets/_Scenes/Menu_StageSelection.unity
     guid: bf414059e98410c4ab661c85c76effd3
   - enabled: 1
-    path: Assets/_Scenes/Stage_Prototype_Test.unity
-    guid: 220479584b048164590472a2eacbd94e
+    path: Assets/_Scenes/Arcade_Stage_1.unity
+    guid: 805dc1b9f8596724ca9afe4ba342cd6e
   m_configObjects: {}

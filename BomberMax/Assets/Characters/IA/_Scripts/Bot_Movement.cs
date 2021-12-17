@@ -8,7 +8,7 @@ public class Bot_Movement : MonoBehaviour
 
     MovementDirection movementDirection;
 
-    List<Vector2> path;
+    [SerializeField]List<Vector2> path;
 
     int pathIndex = 0;
     bool hasPath = false;

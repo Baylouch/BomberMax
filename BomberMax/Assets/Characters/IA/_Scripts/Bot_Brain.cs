@@ -14,6 +14,8 @@ public class Bot_Brain : MonoBehaviour
 
     List<Vector2> backupPath; // To retain a safe path when we got a position where we drop a bomb
 
+    List<TeamMember> ennemies; // To have a reference to ennemies in game
+
     bool dropBomb = false;
     bool botSet = false;
 
@@ -27,11 +29,25 @@ public class Bot_Brain : MonoBehaviour
 
         bombSpawner = GetComponent<BombSpawner>();
         botMovement = GetComponent<Bot_Movement>();
+
+        ennemies = new List<TeamMember>();
+
+        int botTeam = GetComponent<TeamMember>().TeamNumber;
+
+        foreach (TeamMember teamMember in FindObjectsOfType<TeamMember>())
+        {
+            if (botTeam != teamMember.TeamNumber)
+            {
+                ennemies.Add(teamMember);
+            }
+        }
     }
 
     // Update is called once per frame
     void Update()
     {
+        // When a new bomb is drop, check if the path go on it to change it.
+
         if (botMovement.ReachedEndOfPath())
         {
             if (dropBomb)
@@ -48,11 +64,214 @@ public class Bot_Brain : MonoBehaviour
                 {
                     waitUntilSearchNewPath = Time.time + 2f;
 
-                    DeterminePlaceToGo();
+                    CheckAround();
                 }
             }
         }
     }
+
+    // This method check nodes around the bot (relative to its vision), and mark if it spot an enemy, a bonus, and get track of the best
+    // position to go to destroy multiple blocks. If there is no enemy, bonus or blocks, it moves to a random position.
+    void CheckAround()
+    {
+        // Handle multiple bonus, multiple ennemies to do check in the end when decide where to go
+        // Check every tiles around
+        // Is there an enemy ? a bonus ?
+        // Search a path to access it
+        // For the enemy, we should check where we can kill him relative to bomb explosion
+
+        Vector2 currentPos = new Vector2(transform.position.x, transform.position.y);
+
+        GameBonus[] bonus = FindObjectsOfType<GameBonus>();
+
+        List<Vector2> bonusInRange = new List<Vector2>();
+        List<Vector2> ennemiesAttackPos = new List<Vector2>();
+        Vector2 destroyBlocksPos = -Vector2.one;
+        int lastBlocksCount = 0;
+
+        for (int i = AIVision; i >= -AIVision; i--)
+        {
+            for (int j = AIVision; j >= -AIVision; j--)
+            {
+                Vector2 posToCheck = new Vector2(currentPos.x + j, currentPos.y + i);
+
+                int currentBlocksCount = 0;
+
+                if (posToCheck == currentPos)
+                    continue;
+
+                int gridIndex = PathFinding.instance.PathGrid.FindIndex(x => x.position == posToCheck);
+
+                if (gridIndex != -1)
+                {
+                    // Check if the place is reachable
+                    List<Vector2> temp = null;
+
+                    bool reachable = PathFinding.instance.CreatePath(currentPos, posToCheck, ref temp, false);
+
+                    if (reachable)
+                    {
+                        // We first check if there is a bonus or a player
+                        int enemyIndex = ennemies.FindIndex(x => x.gameObject.transform.position.x == posToCheck.x && x.gameObject.transform.position.y == posToCheck.y );
+                        
+                        if (enemyIndex != -1)
+                        {
+                            // We go to a place where we can drop a bomb to get the enemy
+                            // But here we just mark the place for the next step of this method
+                            ennemiesAttackPos.Add(new Vector2(ennemies[enemyIndex].transform.position.x, ennemies[enemyIndex].transform.position.y));
+                            continue;
+                        }
+
+                        // Then we check if there is a bonus
+                        for (int b = 0; b < bonus.Length; b++)
+                        {
+                            if (bonus[b].transform.position.x == posToCheck.x && bonus[b].transform.position.y == posToCheck.y)
+                            {
+                                // We mark the place
+                                bonusInRange.Add(new Vector2(bonus[b].transform.position.x, bonus[b].transform.position.y));
+                                continue;
+                            }
+                        }
+
+                        // TODO : Get inspiration with GetDestructibleBlocksAround() method to reduce size of this one.
+
+                        // Then we check if we drop a bomb here what can we get
+                        // Check relative to explosion length if we can access an enemy
+                        // Count number of block we could destroy
+                        for (int p = 0; p < 4; p++)
+                        {
+                            for (int k = 1; k <= bombSpawner.GetExplosionForce(); k++)
+                            {
+                                Vector2 explosionPos = -Vector2.one;
+
+                                switch (p)
+                                {
+                                    case 0:
+                                        explosionPos = new Vector2(posToCheck.x + k, posToCheck.y);
+                                        break;
+                                    case 1:
+                                        explosionPos = new Vector2(posToCheck.x - k, posToCheck.y);
+
+                                        break;
+                                    case 2:
+                                        explosionPos = new Vector2(posToCheck.x, posToCheck.y + k);
+
+                                        break;
+                                    case 3:
+                                        explosionPos = new Vector2(posToCheck.x, posToCheck.y - k);
+
+                                        break;
+                                }
+
+                                int index = StageManager.instance.GameGrid.FindIndex(x => x.position == explosionPos);
+
+                                if (index != -1)
+                                {
+                                    if (StageManager.instance.GameGrid[index].hasUndestructibleBlock)
+                                    {
+                                        break;
+                                    }
+
+                                    if (StageManager.instance.GameGrid[index].hasDestructibleBlock)
+                                    {
+                                        currentBlocksCount++;
+
+                                        if (currentBlocksCount > lastBlocksCount)
+                                        {
+                                            lastBlocksCount = currentBlocksCount;
+                                            destroyBlocksPos = posToCheck;
+                                        }
+
+                                        break;
+                                    }
+
+                                    enemyIndex = ennemies.FindIndex(x => x.gameObject.transform.position.x == explosionPos.x && x.gameObject.transform.position.y == explosionPos.y);
+
+                                    if (enemyIndex != -1)
+                                    {
+                                        // We go to a place where we can drop a bomb to get the enemy
+                                        // But here we just mark the place for the next step of this method
+                                        ennemiesAttackPos.Add(posToCheck);
+                                        break; // Instead of break we could continue and check where is the maximum ennemies we could get with this explosion
+                                    }
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // For ennemies in range
+        for (int i = 0; i < ennemiesAttackPos.Count; i++)
+        {
+            // Get a safe place
+
+            bool isSafe = GetClosestSafePlace(ennemiesAttackPos[i], bombSpawner.GetExplosionForce());
+
+            if (isSafe)
+            {
+                List<Vector2> temp = null;
+
+                bool security = PathFinding.instance.CreatePath(currentPos, ennemiesAttackPos[i], ref temp);
+
+                // Set bomb when reached end path
+
+                // Go to the safe place and wait
+                if (security)
+                {
+                    botMovement.SetPath(temp);
+                    dropBomb = true;
+                    return; // We end the method because everything is set for this enemy
+                }
+            }
+        }
+
+        // For bonus in range
+        for (int i = 0; i < bonusInRange.Count; i++)
+        {
+            List<Vector2> temp = null;
+
+            bool security = PathFinding.instance.CreatePath(currentPos, bonusInRange[i], ref temp);
+
+            if (security)
+            {
+                botMovement.SetPath(temp);
+                return; // End method here
+            }
+        }
+
+        // For destructible blocks
+        if (destroyBlocksPos != -Vector2.one)
+        {
+            bool isSafe = GetClosestSafePlace(destroyBlocksPos, bombSpawner.GetExplosionForce());
+
+            if (isSafe)
+            {
+                List<Vector2> temp = null;
+
+                bool security = PathFinding.instance.CreatePath(currentPos, destroyBlocksPos, ref temp);
+
+                // Set bomb when reached end path
+
+                // Go to the safe place and wait
+                if (security)
+                {
+                    botMovement.SetPath(temp);
+                    dropBomb = true;
+                    return; // We end the method because everything is set for this enemy
+                }
+            }
+        }
+
+        // If we still there, we use a random path
+        CreateRandomPath();
+    }
+
 
     // Method who returns number of destructible blocks we can explode from a position
     int GetDestructibleBlocksAround(Vector2 _position, int _explosionLength)
@@ -83,11 +302,11 @@ public class Bot_Brain : MonoBehaviour
                         break;
                 }
 
-                tileIndex = StageManager.instance.Grid.FindIndex(x => x.position == posToCheck);
+                tileIndex = StageManager.instance.GameGrid.FindIndex(x => x.position == posToCheck);
 
                 if (tileIndex != -1)
                 {
-                    if (StageManager.instance.Grid[tileIndex].hasDestructibleBlock)
+                    if (StageManager.instance.GameGrid[tileIndex].hasDestructibleBlock)
                     {
                         accessibleBlocks++;
                         break;
@@ -107,94 +326,40 @@ public class Bot_Brain : MonoBehaviour
         return accessibleBlocks;
     }
 
-    // Method to check nodes around and determine the best one to go
-    void DeterminePlaceToGo()
+    void CreateRandomPath()
     {
-        int maximumBlocks = 0;
-
         Vector2 currentPos = new Vector2(transform.position.x, transform.position.y);
 
-        List<Vector2> retainPath = null;
 
-        // Loop trough every case around the bot relative to its vision.
-        // We start from upper right and end to down left.
-        // Special condition if its stage borders, we dont continue on the row / line.
-        for (int i = AIVision; i >= -AIVision; i--)
+        bool validPosition = false;
+        int count = 0;
+
+        while (!validPosition && count < 20)
         {
-            for (int j = AIVision; j >= -AIVision; j--)
+            count++;
+
+            int onX = Random.Range(-3, 4);
+            int onY = Random.Range(-3, 4);
+
+            Vector2 newPos = new Vector2(transform.position.x + onX, transform.position.y + onY);
+
+            if (newPos == currentPos)
+                continue;
+
+            int index = PathFinding.instance.PathGrid.FindIndex(x => x.position == newPos);
+
+            if (index == -1)
+                continue;
+
+            if (PathFinding.instance.PathGrid[index].walkable)
             {
-                Vector2 posToCheck = new Vector2(transform.position.x + j, transform.position.y + i);
+                List<Vector2> temp = null;
+                bool canReach = PathFinding.instance.CreatePath(currentPos, newPos, ref temp);
 
-                int index = StageManager.instance.Grid.FindIndex(x => x.position == posToCheck);
-
-                if (index == -1)
-                    continue;
-
-                if (StageManager.instance.Grid[index].walkable)
+                if (canReach)
                 {
-                    int tempBlocks = GetDestructibleBlocksAround(posToCheck, bombSpawner.GetExplosionForce());
-
-                    // TODO Get the minimum movement we can get for the same amount of blocks
-                    if (maximumBlocks < tempBlocks)
-                    {
-                        // Can we move to the posToCheck ?
-                        List<Vector2> tempList = null;
-
-                        bool movablePos = StageManager.instance.CreatePath(currentPos, posToCheck, ref tempList);
-
-                        // Can we go to a safe pos from the position we check?
-                        bool safeBackup = GetClosestSafePlace(posToCheck, bombSpawner.GetExplosionForce());
-
-                        if (movablePos && safeBackup)
-                        {
-                            maximumBlocks = tempBlocks;
-                            retainPath = new List<Vector2>();
-
-                            for (int k = 0; k < tempList.Count; k++)
-                            {
-                                retainPath.Add(tempList[k]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (maximumBlocks > 0 && retainPath.Count > 0)
-        {
-            botMovement.SetPath(retainPath);
-            dropBomb = true;
-        }
-        else
-        {
-            // Move randomly to a position
-            bool validPosition = false;
-            int count = 0;
-
-            while (!validPosition && count < 20)
-            {
-                count++;
-
-                int onX = Random.Range(-3, 4);
-                int onY = Random.Range(-3, 4);
-
-                Vector2 newPos = new Vector2(transform.position.x + onX, transform.position.y + onY);
-
-                int index = StageManager.instance.Grid.FindIndex(x => x.position == newPos);
-
-                if (index == -1)
-                    continue;
-
-                if (StageManager.instance.Grid[index].walkable)
-                {
-                    List<Vector2> temp = null;
-                    bool canReach = StageManager.instance.CreatePath(currentPos, newPos, ref temp);
-
-                    if (canReach)
-                    {
-                        botMovement.SetPath(temp);
-                        validPosition = true;
-                    }
+                    botMovement.SetPath(temp);
+                    validPosition = true;
                 }
             }
         }
@@ -232,11 +397,11 @@ public class Bot_Brain : MonoBehaviour
                         break;
                 }
 
-                int index = StageManager.instance.Grid.FindIndex(x => x.position == currentPos);
+                int index = StageManager.instance.GameGrid.FindIndex(x => x.position == currentPos);
 
                 if (index != -1)
                 {
-                    if (StageManager.instance.Grid[index].hasUndestructibleBlock || StageManager.instance.Grid[index].hasDestructibleBlock)
+                    if (StageManager.instance.GameGrid[index].hasUndestructibleBlock || StageManager.instance.GameGrid[index].hasDestructibleBlock)
                         break;
 
                     returnList.Add(currentPos);
@@ -296,12 +461,12 @@ public class Bot_Brain : MonoBehaviour
                             break;
                     }
 
-                    int index = StageManager.instance.Grid.FindIndex(x => x.position == currentPos);
+                    int index = PathFinding.instance.PathGrid.FindIndex(x => x.position == currentPos);
 
                     if (index == -1)
                         continue;
 
-                    if (k == 0 && (StageManager.instance.Grid[index].hasDestructibleBlock || StageManager.instance.Grid[index].hasUndestructibleBlock))
+                    if (k == 0 && (!PathFinding.instance.PathGrid[index].walkable))
                     {
                         stopAxis[j] = true;
                         break;
@@ -309,14 +474,13 @@ public class Bot_Brain : MonoBehaviour
 
                     // If index exists, not contained in explosion list, not a danger position and is walkable
                     if (!explosionPositions.Contains(currentPos) &&
-                             !StageManager.instance.Grid[index].isDanger &&
-                             StageManager.instance.Grid[index].walkable &&
+                             PathFinding.instance.PathGrid[index].walkable &&
                              !stopAxis[j])
                     {
                         // Can we move to this position
                         List<Vector2> tempList = null;
 
-                        bool reachable = StageManager.instance.CreatePath(bombPos, currentPos, ref tempList);
+                        bool reachable = PathFinding.instance.CreatePath(bombPos, currentPos, ref tempList);
 
                         if (reachable)
                         {
