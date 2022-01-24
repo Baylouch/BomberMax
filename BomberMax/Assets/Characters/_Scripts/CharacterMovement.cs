@@ -16,6 +16,7 @@ public class CharacterMovement : MonoBehaviour
     float endBonusTime = 0f; // To know when player gets the bonus to stop it
 
     MovementDirection currentDirection = MovementDirection.None;
+    MovementDirection firePointDirection = MovementDirection.Up;
 
     bool isMoving; // To know when to stop the animation, set to true when any movement is done, set to false when we want to stop move
 
@@ -157,6 +158,8 @@ public class CharacterMovement : MonoBehaviour
     {
         MovementDirection lastDirection = currentDirection;
 
+        firePointDirection = _direction;
+
         switch (_direction)
         {
             case MovementDirection.Up:
@@ -204,5 +207,11 @@ public class CharacterMovement : MonoBehaviour
         bonusMove = true;
         endBonusTime = Time.time + _duration; // In Update we can check if bonusMove and if Time.time > to endBonusTime.
         _anim.speed = 1.5f;
+    }
+
+    // Method(getter) used in shotgun to know the shoot orientation
+    public MovementDirection GetFirePointDirection()
+    {
+        return firePointDirection;
     }
 }

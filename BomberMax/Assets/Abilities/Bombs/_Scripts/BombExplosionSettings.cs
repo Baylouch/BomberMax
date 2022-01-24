@@ -1,6 +1,6 @@
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "Explosion", menuName = "ScriptableObjects/Explosion", order = 1)]
+[CreateAssetMenu(fileName = "ExplosionSettings", menuName = "ScriptableObjects/Explosion", order = 1)]
 public class BombExplosionSettings : ScriptableObject
 {
     public GameObject explosionPartPrefab; // Must have spriteRender and collider2D set as trigger on it

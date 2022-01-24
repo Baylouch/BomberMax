@@ -1,5 +1,6 @@
 using UnityEngine;
 
+// TODO change it into struct ??
 public class GameNode
 {
     public Vector2 position;

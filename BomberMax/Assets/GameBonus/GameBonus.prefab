@@ -52,6 +52,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0ba277ae8f5500f4fae3afb9e0f07493, type: 2}
   - {fileID: 11400000, guid: c3cac87cc0273154892e9242406f3983, type: 2}
   gfx: {fileID: 870722223657381028}
+  timerBeforeDestroy: 20
 --- !u!61 &870722223413122489
 BoxCollider2D:
   m_ObjectHideFlags: 0
@@ -148,7 +149,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 2
+  m_SortingOrder: 3
   m_Sprite: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 1
@@ -230,7 +231,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 1
+  m_SortingOrder: 2
   m_Sprite: {fileID: 21300000, guid: 87e69136dfdfead4d9d3b2061b5d204d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 0.8}
   m_FlipX: 0
