@@ -16,7 +16,7 @@ public class ExplosionSetup : MonoBehaviour
     public const float LeftRotation = 180f;
     public const float RightRotation = 0f;
 
-    public const float ExplosionDuration = 1f; // To know how many times the explosion stay
+    public const float ExplosionDuration = .9f; // To know how many times the explosion stay
  
     // TODO : Add more than one settings and handle array mecanism
     [SerializeField] BombExplosionSettings settings;
@@ -41,7 +41,7 @@ public class ExplosionSetup : MonoBehaviour
 
     public void GetExplosionPos()
     {
-        Vector2 posToCheck = new Vector2(transform.position.x, transform.position.y);
+        Vector2 posToCheck = new Vector2(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y));
         int gridIndex = -1;
         int explosionForce = bombComponent.GetBombSpawner().GetExplosionForce();
 
@@ -63,22 +63,22 @@ public class ExplosionSetup : MonoBehaviour
                 switch (i)
                 {
                     case 0: // Up case
-                        posToCheck = new Vector2(transform.position.x, transform.position.y + j);
+                        posToCheck = new Vector2(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y) + j);
                         currentRotation = UpRotation;
 
                         break;
                     case 1: // Down case
-                        posToCheck = new Vector2(transform.position.x, transform.position.y - j);
+                        posToCheck = new Vector2(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y) - j);
                         currentRotation = DownRotation;
 
                         break;
                     case 2: // Right case
-                        posToCheck = new Vector2(transform.position.x + j, transform.position.y);
+                        posToCheck = new Vector2(Mathf.RoundToInt(transform.position.x) + j, Mathf.RoundToInt(transform.position.y));
                         currentRotation = RightRotation;
 
                         break;
                     case 3: // Left case
-                        posToCheck = new Vector2(transform.position.x - j, transform.position.y);
+                        posToCheck = new Vector2(Mathf.RoundToInt(transform.position.x) - j, Mathf.RoundToInt(transform.position.y));
                         currentRotation = LeftRotation;
 
                         break;
@@ -133,7 +133,7 @@ public class ExplosionSetup : MonoBehaviour
     {
         // We create the explosion parent
         GameObject explosion = new GameObject("Explosion");
-        explosion.transform.position = transform.position;
+        explosion.transform.position = new Vector3(Mathf.RoundToInt(transform.position.x), Mathf.RoundToInt(transform.position.y), 0f);
 
         // We must add a rigidbody on to detect collision with other things in game
         Rigidbody2D _rb = explosion.AddComponent<Rigidbody2D>();
@@ -150,6 +150,7 @@ public class ExplosionSetup : MonoBehaviour
             explosionPart.transform.position = explosionNodes[i].position;
             explosionPart.transform.localEulerAngles = new Vector3(0, 0, explosionNodes[i].zRotation);
             explosionPart.GetComponent<SpriteRenderer>().sprite = explosionNodes[i].gfx;
+            explosionPart.GetComponent<ExplosionDamager>().Damage = settings.explosionDamage;
         }
 
         Destroy(explosion, ExplosionDuration);

@@ -32,9 +32,9 @@ public class StageManager : MonoBehaviour
     [Header("Undestructible blocks settings")]
 
     [SerializeField] GameObject undestructibleBlockPrefab;
-    [Tooltip("Every position will get a block")]
+    [Tooltip("Every positions will get a block")]
     [SerializeField] Transform requiredUndestructiblePos;
-    [Tooltip("Every position has a chance to spawn a block")]
+    [Tooltip("Every positions has a chance to spawn a block")]
     [SerializeField] Transform undestructiblePos;
 
     [Header("Destructible blocks settings")]
@@ -42,9 +42,8 @@ public class StageManager : MonoBehaviour
     [SerializeField] GameObject destructibleBlockPrefab;
     [SerializeField] Transform requiredDestructiblePos;
     [SerializeField] Transform destructiblePos;
-    // Use pos from "requiredDestructiblePos" or "destructiblePos".
-    [SerializeField] List<Transform> bonusPos; // To define where a destructible block must spawn a bonus (rest has a chance percentage)
-    [SerializeField] float bonusChance = 15f;
+
+    List<GameObject> destructibleBlocks = new List<GameObject>();
 
     private void Awake()
     {
@@ -61,6 +60,12 @@ public class StageManager : MonoBehaviour
 
         CreateUndestructibleBlocks();
         CreateDestructibleBlocks();
+
+        // TODO : Use BonusManager to set bonus blocks
+        if (GetComponent<BonusManager>())
+        {
+            GetComponent<BonusManager>().SetBonusBlocks(destructibleBlocks.ToArray());
+        }
 
         // We set PathFinding nodes here (after created and set stage nodes)
         if (PathFinding.instance)
@@ -84,7 +89,7 @@ public class StageManager : MonoBehaviour
     void CreateUndestructibleBlocks()
     {
         float _undestructibleSpawnPercentage = 50f;
-        int _undestructibleBlocksCount = 0;
+        int _undestructibleBlocksCount = 0; // ??? TODO See to delete because we only increment it and not using it...
 
         GameObject parentGO = new GameObject("Undestructible blocks");
         parentGO.transform.position = Vector3.zero;
@@ -151,7 +156,7 @@ public class StageManager : MonoBehaviour
     void CreateDestructibleBlocks()
     {
         float _destructibleSpawnPercentage = 50f;
-        int _destructibleBlocksCount = 0;
+        int _destructibleBlocksCount = 0; // TODO : Delete it because we only increment it and not using it.
 
         GameObject parentGO = new GameObject("Destructible blocks");
         parentGO.transform.position = Vector3.zero;
@@ -171,6 +176,8 @@ public class StageManager : MonoBehaviour
                 // Spawn it            
                 GameObject destBlock = Instantiate(destructibleBlockPrefab, GameGrid[gridIndex].position, Quaternion.identity);
                 destBlock.transform.parent = parentGO.transform;
+
+                destructibleBlocks.Add(destBlock);
 
                 GameGrid[gridIndex].hasDestructibleBlock = true;
             }
@@ -197,6 +204,9 @@ public class StageManager : MonoBehaviour
                     GameObject undestBlock = Instantiate(destructibleBlockPrefab, GameGrid[gridIndex].position, Quaternion.identity);
                     undestBlock.transform.parent = parentGO.transform;
 
+                    destructibleBlocks.Add(undestBlock);
+
+
                     GameGrid[gridIndex].hasDestructibleBlock = true;
 
                     _destructibleSpawnPercentage = 35f;
@@ -205,29 +215,6 @@ public class StageManager : MonoBehaviour
                 else
                 {
                     _destructibleSpawnPercentage += 3f;
-                }
-            }
-        }
-
-        // Then we define blocks with bonus
-        for (int i = 0; i < parentGO.transform.childCount; i++)
-        {
-            int bonusIndex = bonusPos.FindIndex(x => x.position == parentGO.transform.GetChild(i).position);
-
-            if (bonusIndex != -1)
-            {
-                // Destructible block will loot a bonus
-                parentGO.transform.GetChild(i).GetComponent<DestructibleBlock>().SetupBlockBonus();
-
-            }
-            else
-            {
-                // We make a chance it'll drop a bonus
-                float randomy = Random.Range(0f, 100f);
-
-                if (bonusChance > randomy)
-                {
-                    parentGO.transform.GetChild(i).GetComponent<DestructibleBlock>().SetupBlockBonus();
                 }
             }
         }

@@ -2,7 +2,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(Animator))]
 [RequireComponent(typeof(CharacterHealth))]
-[RequireComponent(typeof(CharacterInfo))]
+[RequireComponent(typeof(CharacterFirepoint))]
 public class CharacterMovement : MonoBehaviour
 {
     [SerializeField] float speed = 3f;
@@ -11,12 +11,12 @@ public class CharacterMovement : MonoBehaviour
 
     Animator _anim;
     CharacterHealth _health;
+    CharacterFirepoint _firepoint;
 
     bool bonusMove = false; // For now we just multiply by 2 the original speed
     float endBonusTime = 0f; // To know when player gets the bonus to stop it
 
     MovementDirection currentDirection = MovementDirection.None;
-    MovementDirection firePointDirection = MovementDirection.Up;
 
     bool isMoving; // To know when to stop the animation, set to true when any movement is done, set to false when we want to stop move
 
@@ -24,19 +24,26 @@ public class CharacterMovement : MonoBehaviour
     // But if we change direction perpendicularly we must wait until we reach the last position we going to.
     // It must be on tile to tile movement
 
+    float idleTimer = 0f; // To be able to just rotate the character and not moving instantly (rly short timing)
+    float idleThreshold = 0.14f;
+
     // Start is called before the first frame update
     void Start()
     {
         _anim = GetComponent<Animator>();
         _health = GetComponent<CharacterHealth>();
+        _firepoint = GetComponent<CharacterFirepoint>();
 
         movePoint.parent = null;
 
         if (gameObject.tag == "Player")
         {
-            FindObjectOfType<MovementCursor>().SetCharacterMovement(this);
+            foreach (MovementButton button in FindObjectsOfType<MovementButton>())
+            {
+                button.SetupMovement(this);
+            }
 
-            //if (GetComponent<CharacterInfo>().IsLocal)
+            //if (Local Player)
             //{
             //}
         }
@@ -63,10 +70,26 @@ public class CharacterMovement : MonoBehaviour
             return;
         }
 
+        if (!isMoving && idleTimer < Time.time)
+        {
+            if (!_anim.GetBool("Idle"))
+                _anim.SetBool("Idle", true);
+        }
+        else
+        {
+            if (idleTimer < Time.time)
+            {
+                if (_anim.GetBool("Idle"))
+                    _anim.SetBool("Idle", false);
+            }
+        }
+
+
         if ((transform.position - movePoint.position).magnitude <= 0.05f || oppositeDirection)
         {
             if (oppositeDirection)
                 oppositeDirection = false;
+
 
             switch (currentDirection)
             {
@@ -75,55 +98,67 @@ public class CharacterMovement : MonoBehaviour
 
                     break;
                 case MovementDirection.Up:
-                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(0f, 1f, 0f), .2f, stopMovement))
-                    {
-                        movePoint.position += new Vector3(0f, 1f, 0f);
-                    }
-
                     if (_anim.GetInteger("MovementHorizontal") != 0)
                         _anim.SetInteger("MovementHorizontal", 0);
 
                     if (_anim.GetInteger("MovementVertical") != 1)
                         _anim.SetInteger("MovementVertical", 1);
 
-                    break;
-                case MovementDirection.Down:
-                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(0f, -1f, 0f), .2f, stopMovement))
+                    if (_anim.GetBool("Idle"))
+                        break;
+
+                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(0f, 1f, 0f), .2f, stopMovement))
                     {
-                        movePoint.position += new Vector3(0f, -1f, 0f);
+                        movePoint.position += new Vector3(0f, 1f, 0f);
                     }
 
+                    break;
+                case MovementDirection.Down:
                     if (_anim.GetInteger("MovementHorizontal") != 0)
                         _anim.SetInteger("MovementHorizontal", 0);
 
                     if (_anim.GetInteger("MovementVertical") != -1)
                         _anim.SetInteger("MovementVertical", -1);
 
-                    break;
-                case MovementDirection.Left:
-                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(-1f, 0f, 0f), .2f, stopMovement))
+                    if (_anim.GetBool("Idle"))
+                        break;
+
+                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(0f, -1f, 0f), .2f, stopMovement))
                     {
-                        movePoint.position += new Vector3(-1f, 0f, 0f);
+                        movePoint.position += new Vector3(0f, -1f, 0f);
                     }
 
+                    break;
+                case MovementDirection.Left:
                     if (_anim.GetInteger("MovementVertical") != 0)
                         _anim.SetInteger("MovementVertical", 0);
 
                     if (_anim.GetInteger("MovementHorizontal") != -1)
                         _anim.SetInteger("MovementHorizontal", -1);
 
-                    break;
-                case MovementDirection.Right:
-                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(1f, 0f, 0f), .2f, stopMovement))
+                    if (_anim.GetBool("Idle"))
+                        break;
+
+                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(-1f, 0f, 0f), .2f, stopMovement))
                     {
-                        movePoint.position += new Vector3(1f, 0f, 0f);
+                        movePoint.position += new Vector3(-1f, 0f, 0f);
                     }
 
+                    break;
+                case MovementDirection.Right:
                     if (_anim.GetInteger("MovementVertical") != 0)
                         _anim.SetInteger("MovementVertical", 0);
 
                     if (_anim.GetInteger("MovementHorizontal") != 1)
                         _anim.SetInteger("MovementHorizontal", 1);
+
+                    if (_anim.GetBool("Idle"))
+                        break;
+
+                    if (!Physics2D.OverlapCircle(movePoint.position + new Vector3(1f, 0f, 0f), .2f, stopMovement))
+                    {
+                        movePoint.position += new Vector3(1f, 0f, 0f);
+                    }
 
                     break;
             }
@@ -145,6 +180,10 @@ public class CharacterMovement : MonoBehaviour
                 {
                     _anim.SetInteger("MovementVertical", 0);
                 }
+                if (_anim.GetBool("Idle"))
+                {
+                    _anim.SetBool("Idle", true);
+                }
             }
         }
     }
@@ -152,13 +191,15 @@ public class CharacterMovement : MonoBehaviour
     public void StopMovement()
     {
         currentDirection = MovementDirection.None;
+
+        idleTimer = Time.time + idleThreshold;
     }
 
     public void PerformMovement(MovementDirection _direction)
     {
         MovementDirection lastDirection = currentDirection;
 
-        firePointDirection = _direction;
+        _firepoint.UpdateFirePointDirection(_direction);
 
         switch (_direction)
         {
@@ -200,6 +241,8 @@ public class CharacterMovement : MonoBehaviour
 
         if (!isMoving)
             isMoving = true;
+
+        idleTimer = Time.time + idleThreshold;
     }
 
     public void ActivateSpeedBonus(float _duration)
@@ -207,11 +250,5 @@ public class CharacterMovement : MonoBehaviour
         bonusMove = true;
         endBonusTime = Time.time + _duration; // In Update we can check if bonusMove and if Time.time > to endBonusTime.
         _anim.speed = 1.5f;
-    }
-
-    // Method(getter) used in shotgun to know the shoot orientation
-    public MovementDirection GetFirePointDirection()
-    {
-        return firePointDirection;
     }
 }

@@ -3,9 +3,6 @@ using UnityEngine;
 [RequireComponent(typeof(Collider2D))]
 public class DestructibleBlock : MonoBehaviour
 {  
-    [SerializeField] GameObject bonusPrefab; // Move it into GameBonusData ?
-
-    [SerializeField] bool spawnBonus = false;
     bool explosed = false;
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -17,23 +14,11 @@ public class DestructibleBlock : MonoBehaviour
         }
     }
 
-    void SpawnBonus()
-    {
-        GameObject _bonusGO = Instantiate(bonusPrefab, transform.position, Quaternion.identity);
-        _bonusGO.GetComponent<GameBonus>().SetupBonus();
-        StageManager.instance.SetBonusNode(new Vector2(transform.position.x, transform.position.y), true);
-    }
-
-    public void SetupBlockBonus()
-    {
-        spawnBonus = true;
-    }
-
     public void DestroyBlock()
     {
-        if (spawnBonus)
+        if (GetComponent<BonusSpawner>())
         {
-            SpawnBonus();
+            GetComponent<BonusSpawner>().SpawnBonus();
         }
 
         StageManager.instance.UpdateDestructibleBlock(new Vector2(transform.position.x, transform.position.y));

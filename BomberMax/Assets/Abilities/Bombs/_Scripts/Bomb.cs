@@ -14,12 +14,17 @@ public class Bomb : MonoBehaviour
     Collider2D bombCollider;
     ExplosionSetup explosionSetup;
 
+    int bomberID;
     bool explosed = false;
+    int tileIndex;
 
     private void Start()
     {
         bombCollider = GetComponent<Collider2D>();
         explosionSetup = GetComponent<ExplosionSetup>();
+
+        tileIndex = StageManager.instance.GameGrid.FindIndex(x => x.position == (Vector2)transform.position);
+        StageManager.instance.GameGrid[tileIndex].hasBomb = true;
 
         StartCoroutine(Explosion());
         StartCoroutine(ColorModifier());
@@ -27,7 +32,7 @@ public class Bomb : MonoBehaviour
         StageManager.instance.SetDangerTiles(); // TODO Delete and move into ExplosionSetup.cs
     }
 
-    // When a bomb is created, its collider is Trigger because the player needs to runaway.
+    // When a bomb is created, its collider is Trigger because the character needs to runaway.
     // When he left, we set the trigger as false.
     private void OnTriggerExit2D(Collider2D collision)
     {
@@ -113,19 +118,15 @@ public class Bomb : MonoBehaviour
         // Decrement current spawner bomb
         bombSpawner.DecrementBombsNumb();
 
-        int tileIndex = StageManager.instance.GameGrid.FindIndex(x => x.position == (Vector2)transform.position);
-        if (tileIndex != -1)
-        {
-            // Remove the bomb from the TileInfo list
-            StageManager.instance.GameGrid[tileIndex].hasBomb = false;
-        }
+        StageManager.instance.GameGrid[tileIndex].hasBomb = false;
 
         Destroy(gameObject);
     }
 
-    public void SetupBomb(BombSpawner _spawner)
+    public void SetupBomb(BombSpawner _spawner, int _ID)
     {
         bombSpawner = _spawner;
+        bomberID = _ID;
     }
 
     // Method used for bot to know the bomb's length
@@ -135,5 +136,21 @@ public class Bomb : MonoBehaviour
             return bombSpawner;
         else
             return null;
+    }
+
+    // Method used to modify the trigger setting from bomb's collider 2D (BombKicker.cs)
+    public void UpdateIsTrigger(bool _value)
+    {
+        bombCollider.isTrigger = _value;
+    }
+
+    public int GetBombTileIndex()
+    {
+        return tileIndex;
+    }
+
+    public int GetBomberID()
+    {
+        return bomberID;
     }
 }

@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: InvincibilityBonus
   m_EditorClassIdentifier: 
   type: 3
+  prefab: {fileID: 870722223413122495, guid: c85f717fa5f7ba5428efb88bc95dacee, type: 3}
   sprite: {fileID: 21300000, guid: 3a6afc3e626bd0140ac1b237d1326889, type: 3}
   duration: 15
   chanceToSpawn: 1

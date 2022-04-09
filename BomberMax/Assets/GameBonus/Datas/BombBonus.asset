@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: BombBonus
   m_EditorClassIdentifier: 
   type: 0
+  prefab: {fileID: 870722223413122495, guid: c85f717fa5f7ba5428efb88bc95dacee, type: 3}
   sprite: {fileID: 21300000, guid: 4b71334e14857f743a984c610ba237dd, type: 3}
   duration: 0
   chanceToSpawn: 10

@@ -10,4 +10,6 @@ public class BombExplosionSettings : ScriptableObject
     public Sprite middleGfx; // Represent the middle of explosion's axis
 
     public Sprite endGfx; // Represent the end of explosion's axis
+
+    public float explosionDamage;
 }

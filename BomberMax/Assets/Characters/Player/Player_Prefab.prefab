@@ -47,6 +47,8 @@ GameObject:
   - component: {fileID: 520610951}
   - component: {fileID: -5995875594067147382}
   - component: {fileID: 745254229347804064}
+  - component: {fileID: 4462801012228188965}
+  - component: {fileID: -7153641425859898471}
   m_Layer: 6
   m_Name: Player_Prefab
   m_TagString: Player
@@ -179,7 +181,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c486e0bfa58e59c4aa4298c1be761e5d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  healthPoints: 2
+  healthPoints: 3
 --- !u!114 &-5995875594067147382
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -205,6 +207,37 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   bulletPrefab: {fileID: 101895880519328793, guid: 435608a6f61f16b44831ecb1ee77316f, type: 3}
+--- !u!114 &4462801012228188965
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3253295401119309528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd4c87e66890ed94894cf47a070cd8e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  firePointMask:
+    serializedVersion: 2
+    m_Bits: 128
+--- !u!114 &-7153641425859898471
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3253295401119309528}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 51437529cd3d17648b6578c10be8e417, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  kickForce: 2
+  explosionLayerMask:
+    serializedVersion: 2
+    m_Bits: 1984
 --- !u!1 &3253295402142858289
 GameObject:
   m_ObjectHideFlags: 0
@@ -284,6 +317,6 @@ SpriteRenderer:
   m_Size: {x: 0.32, y: 0.32}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0

@@ -4,6 +4,7 @@ using UnityEngine;
 public class GameBonusData : ScriptableObject
 {
     public GameBonusType type;
+    public GameObject prefab;
     public Sprite sprite;
     public float duration; // 0 = Infinity
     public float chanceToSpawn;

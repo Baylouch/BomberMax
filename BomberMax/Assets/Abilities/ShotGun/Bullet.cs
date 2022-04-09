@@ -5,6 +5,7 @@ using UnityEngine;
 public class Bullet : MonoBehaviour
 {
     [SerializeField] float bulletForce = 5f;
+    [SerializeField] float bulletDamage = 1f;
 
     bool hasHit = false;
 
@@ -40,7 +41,7 @@ public class Bullet : MonoBehaviour
             }
             else if (collision.GetComponent<CharacterHealth>()) // Set as the same layer as the shotGun gameobject (Player or IA)
             {
-                collision.GetComponent<CharacterHealth>().DecrementHealth();
+                collision.GetComponent<CharacterHealth>().TakeDamage(bulletDamage);
 
             }
 

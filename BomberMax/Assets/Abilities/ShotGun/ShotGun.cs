@@ -11,20 +11,24 @@
 
 using UnityEngine;
 
+[RequireComponent(typeof(CharacterFirepoint))]
 public class ShotGun : MonoBehaviour
 {
     public const int MaxAmmo = 4;
 
     [SerializeField] GameObject bulletPrefab;
 
+    CharacterFirepoint firePoint;
+
     LayerMask teamLayer;
     int currentAmmo = 0;
 
-    // TODO Delete
     private void Start()
     {
+        firePoint = GetComponent<CharacterFirepoint>();
         teamLayer = gameObject.layer;
-        AddAmmo(10);
+
+        AddAmmo(10); // TODO Delete
     }
 
     // TODO Delete
@@ -46,26 +50,23 @@ public class ShotGun : MonoBehaviour
         // Create the bullet and set its orientation
         currentAmmo--;
 
-        CharacterMovement _movement = GetComponent<CharacterMovement>();
         float shootOrientation = 0f;
 
-        if (_movement)
+        switch (firePoint.GetFirePointDirection())
         {
-            switch (_movement.GetFirePointDirection())
-            {
-                case MovementDirection.Up:
-                    shootOrientation = 0f;
-                    break;
-                case MovementDirection.Down:
-                    shootOrientation = 180f;
-                    break;
-                case MovementDirection.Right:
-                    shootOrientation = -90f;
-                    break;
-                case MovementDirection.Left:
-                    shootOrientation = 90f;
-                    break;
-            }
+            case MovementDirection.Up:
+                shootOrientation = 0f;
+                break;
+            case MovementDirection.Down:
+                shootOrientation = 180f;
+                break;
+            case MovementDirection.Right:
+                shootOrientation = -90f;
+                break;
+            case MovementDirection.Left:
+                shootOrientation = 90f;
+                break;
+            
         }
 
         GameObject bulletGO = Instantiate(bulletPrefab, transform.position, Quaternion.identity);

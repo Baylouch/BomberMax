@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: ExplosionBonus
   m_EditorClassIdentifier: 
   type: 1
+  prefab: {fileID: 870722223413122495, guid: c85f717fa5f7ba5428efb88bc95dacee, type: 3}
   sprite: {fileID: 21300000, guid: 731813ec7b584684cba8aa2e50e6eabd, type: 3}
   duration: 0
   chanceToSpawn: 6

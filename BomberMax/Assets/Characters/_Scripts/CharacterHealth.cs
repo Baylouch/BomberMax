@@ -6,9 +6,9 @@ using System.Collections;
 [RequireComponent(typeof(CharacterMovement))]
 public class CharacterHealth : MonoBehaviour
 {
-    public const int maxHealthPoints = 2;
+    public const float maxHealthPoints = 3f;
 
-    public int healthPoints = 2;
+    public float healthPoints = 3f; // TODO define in Start() ?
 
     SpriteRenderer spriteRenderer;
 
@@ -17,7 +17,7 @@ public class CharacterHealth : MonoBehaviour
     bool hasBeenHit = false;
 
     float endInvincibleBonusTime = 0f;
-    bool invincibleBonus = false;
+    bool isInvincible = false;
     Coroutine invincibleCoroutine;
 
     bool isDead = false;
@@ -42,11 +42,11 @@ public class CharacterHealth : MonoBehaviour
             }
         }
 
-        if (invincibleBonus)
+        if (isInvincible)
         {
             if (Time.time >= endInvincibleBonusTime)
             {
-                invincibleBonus = false;
+                isInvincible = false;
                 StopCoroutine(invincibleCoroutine);
                 spriteRenderer.color = new Color(1f, 1f, 1f);
             }
@@ -60,13 +60,16 @@ public class CharacterHealth : MonoBehaviour
             if (hasBeenHit)
                 return;
 
-            if (invincibleBonus)
+            if (isInvincible)
                 return;
 
             lastTimeHit = Time.time;
             hasBeenHit = true;
 
-            DecrementHealth();
+            if (collision.gameObject.GetComponent<ExplosionDamager>())
+                TakeDamage(collision.gameObject.GetComponent<ExplosionDamager>().Damage);
+            else
+                TakeDamage(0.5f);
         }
     }
 
@@ -218,48 +221,50 @@ public class CharacterHealth : MonoBehaviour
         //GameManager.instance.DisplayLoosePanel();
     }
 
-    public void DecrementHealth()
+    public void TakeDamage(float _damage)
     {
-        healthPoints--;
+        healthPoints -= _damage;
 
-        // TODO : Handle multiplayer when needed
-        if (healthPoints == 1)
+        if (healthPoints < 0f)
+            healthPoints = 0f;
+
+        // TODO Condition for local player only
+        if (gameObject.tag == "Player")
         {
-            if (gameObject.tag == "Player")
-                GameCanvas.instance.healthUI.LostFirstHealth();
-
-            StartCoroutine(GetHit());
+            PlayerHealth_UI healthUI = FindObjectOfType<PlayerHealth_UI>();
+            if (healthUI)
+            {
+                healthUI.UpdateHealth(healthPoints);
+            }
         }
-        else if (healthPoints <= 0)
-        {
-            if (gameObject.tag == "Player")
-                GameCanvas.instance.healthUI.LostSecondHealth();
 
+        if (healthPoints <= 0f)
+        {
             StartCoroutine(Death());
+        }
+        else
+        {
+            StartCoroutine(GetHit());
         }
     }
 
-    public void IncrementHealth()
+    public void Healing(float _heal)
     {
-        if (healthPoints < maxHealthPoints)
-        {
-            healthPoints++;
+        healthPoints += _heal;
+        if (healthPoints > maxHealthPoints)
+            healthPoints = maxHealthPoints;
 
-            if (gameObject.tag == "Player")
-                GameCanvas.instance.healthUI.GainHealth();
-        }
+        // TODO Create healing animation
     }
 
     public void SetupInvincibleBonus(float _duration)
     {
         // TO avoid to be multicolor indefinitly
-        if (!invincibleBonus)
+        if (!isInvincible)
             invincibleCoroutine = StartCoroutine(MultiColor());
 
         endInvincibleBonusTime = Time.time + _duration;
-        invincibleBonus = true;
+        isInvincible = true;
    
     }
-
-
 }

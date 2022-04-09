@@ -16,3 +16,4 @@ MonoBehaviour:
   centerGfx: {fileID: -5169909778743307610, guid: 40d8637d093fb754f95177f7fc82211b, type: 3}
   middleGfx: {fileID: -9016441021332010654, guid: 40d8637d093fb754f95177f7fc82211b, type: 3}
   endGfx: {fileID: -6802819760871368263, guid: 40d8637d093fb754f95177f7fc82211b, type: 3}
+  explosionDamage: 1
